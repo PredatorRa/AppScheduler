@@ -40,8 +40,11 @@ public class Scheduler {
             Iterator<Flow> iter = this.flows.iterator();
             while (iter.hasNext()) {
                 Flow flow = iter.next();
-                if (availablePorts.contains(flow.getPortId())) {
+                //todo 判断将当前flow发送到哪一个Port比较合适
+                if (!availablePorts.isEmpty()) {
                     // 找到了可用的出端口，尝试进行发送
+                    Integer next = availablePorts.iterator().next();
+                    flow.setPortId(next);
                     boolean sent = this.sendFlow(currentTime, flow);
                     if (sent) {
                         iter.remove();
