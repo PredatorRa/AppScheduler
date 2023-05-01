@@ -9,12 +9,14 @@ import java.util.Map;
 public class Port {
     private final int id;
     private final int bandwidth;
+    private Integer nextFreeTime;
     private final List<Map.Entry<Integer, Integer>> usage;
 
     public Port(int id, int bandwidth) {
         this.id = id;
         this.bandwidth = bandwidth;
         this.usage = new ArrayList<>();
+        this.nextFreeTime = 0;
     }
 
     // 初始化端口状态

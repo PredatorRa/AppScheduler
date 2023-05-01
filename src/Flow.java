@@ -4,11 +4,15 @@
 流对象，记录流的带宽、进入设备时间和发送时间
 */
 class Flow implements Comparable<Flow> {
+
     private final int id;
     private final int bandwidth;
     private final int enterTime;
     private final int duration;
+
+    //发送时间
     private int sendTime;
+    //发送端口
     private int portId;
 
     public Flow(int id, int bandwidth, int enterTime, int duration) {
