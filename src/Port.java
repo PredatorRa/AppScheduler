@@ -1,87 +1,1 @@
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-/*
- * 端口对象，记录出端口的带宽和占用情况
- */
-public class Port {
-    private final int id;
-    private final int bandwidth;
-    private final List<Map.Entry<Integer, Integer>> usage;
-
-    public Port(int id, int bandwidth) {
-        this.id = id;
-        this.bandwidth = bandwidth;
-        this.usage = new ArrayList<>();
-    }
-
-    // 初始化端口状态
-    public void init() {
-        usage.clear();
-        usage.add(new AbstractMap.SimpleEntry<>(0, this.bandwidth));
-    }
-
-    // 判断当前时间是否可用
-    public boolean isAvailable(int currentTime) {
-        for (Map.Entry<Integer, Integer> entry : this.usage) {
-            if (currentTime >= entry.getKey() && currentTime < entry.getValue()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // 检查是否可以发送指定带宽，更新端口使用情况
-    public boolean canSend(int bandwidth) {
-        for (Map.Entry<Integer, Integer> entry : this.usage) {
-            int remainingBandwidth = entry.getValue() - entry.getKey();
-            if (remainingBandwidth >= bandwidth) {
-// 可以发送
-                return true;
-            }
-        }
-        return false;
-    }
-    // 发送流
-    public void send(int currentTime, int bandwidth, int duration) {
-        for (Map.Entry<Integer, Integer> entry : this.usage) {
-            int remainingBandwidth = entry.getValue() - entry.getKey();
-            if (remainingBandwidth >= bandwidth) {
-                // 找到符合要求的时间段，更新使用情况
-                entry.setValue(entry.getKey() + duration);
-                entry.setValue(Math.min(entry.getValue(), currentTime + duration));
-                while (entry.getValue() < this.usage.get(this.usage.size() - 1).getKey()) {
-                    this.usage.remove(this.usage.size() - 1);
-                }
-                if (entry.getValue() > this.usage.get(this.usage.size() - 1).getValue()) {
-                    this.usage.add(new AbstractMap.SimpleEntry<>(entry.getValue(), this.bandwidth));
-                }
-                break;
-            }
-        }
-    }
-
-    // 计算总发送时间
-    public int getTotalTime() {
-        int totalTime = 0;
-        int lastTime = 0;
-        for (Map.Entry<Integer, Integer> entry : this.usage) {
-            if (entry.getKey() > lastTime) {
-                totalTime += entry.getKey() - lastTime;
-            }
-            totalTime += entry.getValue() - entry.getKey();
-            lastTime = entry.getValue();
-        }
-        return totalTime;
-    }
-
-    public int getId() {
-        return this.id;
-    }
-
-    public int getBandwidth() {
-        return this.bandwidth;
-    }
-}
+import java.time.Period;import java.util.AbstractMap;import java.util.ArrayList;import java.util.List;import java.util.Map;/* * 端口对象，记录出端口的带宽和占用情况 */public class Port {    private final int id;    private final int bandwidth;    private List<TimePeriod> timeLine;    public Port(int id, int bandwidth) {        this.id = id;        this.bandwidth = bandwidth;        this.timeLine = new ArrayList<>();    }    // 初始化端口状态    public void init() {        timeLine.clear();        timeLine.add(new TimePeriod(0,Integer.MAX_VALUE,bandwidth));    }    // 判断当前时间是否可用    public boolean isAvailable(int currentTime,int useWidth) {        //找到当前时间点对应的时间段        TimePeriod timePeriod = findPeriod(currentTime);        //判断当前时间段容量是否够        return timePeriod.getFreeWidth()>=useWidth;    }    // 找到某个时间点对应的时间段    private TimePeriod findPeriod(int currentTime) {        return null;    }    //找到某一个时间点的剩余带宽    public Integer findWidth(int time){        return 0;    }    //找到下一段有空容量的period    public TimePeriod findNextAvailablePeriod(int enterTime, int bandwidth) {        return null;    }    // 发送流    public void send(int currentTime, Port port) {    }    // 计算总发送时间    public int getTotalTime() {        int totalTime = 0;        return totalTime;    }    public int getId() {        return this.id;    }    public int getBandwidth() {        return this.bandwidth;    }    public List<TimePeriod> getTimeLine() {        return timeLine;    }    public void setTimeLine(List<TimePeriod> timeLine) {        this.timeLine = timeLine;    }}

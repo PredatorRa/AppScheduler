@@ -8,7 +8,9 @@ class Flow implements Comparable<Flow> {
     private final int bandwidth;
     private final int enterTime;
     private final int duration;
+    //发送时间
     private int sendTime;
+    //发送端口
     private int portId;
 
     public Flow(int id, int bandwidth, int enterTime, int duration) {
@@ -54,6 +56,6 @@ class Flow implements Comparable<Flow> {
 
     @Override
     public int compareTo(Flow o) {
-        return this.enterTime - o.enterTime;
+        return o.duration - this.duration;
     }
 }
