@@ -38,7 +38,6 @@ public class Scheduler {
 
     /**
      * 选择合适的端口
-     * 1.
      * @param flow
      * @return
      */
@@ -71,9 +70,11 @@ public class Scheduler {
     /*
      * 尝试发送一个流，如果成功则更新端口状态，返回 true；否则返回 false。
      */
-    private boolean sendFlow(Port port, Flow flow) {
-        //
-        return true;
+    private void sendFlow(Port port, Flow flow) {
+        //端口绑定流
+        Integer sendTime = port.bond(flow);
+        //流绑定端口
+        flow.bond(port.getId(),sendTime);
     }
 
     //把结果写入文件
