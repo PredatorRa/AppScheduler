@@ -35,9 +35,6 @@ public class Scheduler {
             //发送流
             sendFlow(port,flow);
         }
-
-        //输出结果
-        writeFile();
     }
 
     /**
@@ -63,10 +60,17 @@ public class Scheduler {
         Integer nearestTime = Integer.MAX_VALUE;
         for (Port port : ports) {
             TimePeriod period = port.findNextAvailablePeriod(flow.getEnterTime(),flow.getDuration(),flow.getBandwidth());
+            //当前端口带宽小于流带宽
+            if(period==null) {
+                continue;
+            }
             if(period.getStartTime()<nearestTime){
                 nearestTime = period.getStartTime();
                 nearestPort = port;
             }
+        }
+        if(nearestPort==null){
+            System.out.println(nearestPort);
         }
         flow.setSendTime(nearestTime);
         return nearestPort;
@@ -80,20 +84,6 @@ public class Scheduler {
     private void sendFlow(Port port, Flow flow) {
         //端口绑定流
         port.bond(flow);
-    }
-
-    //把结果写入文件
-    private void writeFile() {
-        try {
-            File outputFile = new File("output.txt");
-            PrintWriter writer = new PrintWriter(new FileOutputStream(outputFile, true));
-            for (Flow flow : flows) {
-                writer.println(flow.getId() + "," + flow.getPortId()  + "," + flow.getSendTime());
-            }
-            writer.close();
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
     }
 
 

@@ -1,7 +1,4 @@
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,6 +22,7 @@ public class Main {
             // 创建 Scheduler 对象进行调度
             Scheduler scheduler = new Scheduler(ports, flows);
             scheduler.run();
+            writeFile(flows,i);
             i++;
         }
     }
@@ -45,7 +43,7 @@ public class Main {
                 flowList.add(new Flow(flowId, bandwidth, arrivalTime, sendTime));
             }
         } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
+            return null;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -67,11 +65,25 @@ public class Main {
                 portList.add(new Port(portId, bandwidth));
             }
         } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
+            return null;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
         return portList;
+    }
+
+    //把结果写入文件
+    private static void writeFile(List<Flow> flows,int i) {
+        try {
+            File outputFile = new File(String.format("output_%d.txt", i));
+            PrintWriter writer = new PrintWriter(new FileOutputStream(outputFile, true));
+            for (Flow flow : flows) {
+                writer.println(flow.getId() + "," + flow.getPortId()  + "," + flow.getSendTime());
+            }
+            writer.close();
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
