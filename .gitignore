@@ -1,0 +1,35 @@
+# Ignore compiled binary files
+*.class
+*.jar
+
+# Ignore build output directories
+bin/
+build/
+dist/
+
+# Ignore IDE and editor specific files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.idea/
+
+# Ignore system and backup files
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*#
+
+# Ignore user-specific files
+/credentials.properties
+
+# Ignore dependencies and build artifacts
+target/
+node_modules/
+yarn.lock
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
