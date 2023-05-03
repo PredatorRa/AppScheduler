@@ -1,3 +1,7 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
 import java.time.Period;
 import java.util.*;
 
@@ -80,6 +84,16 @@ public class Scheduler {
 
     //把结果写入文件
     private void writeFile() {
+        try {
+            File outputFile = new File("output.txt");
+            PrintWriter writer = new PrintWriter(new FileOutputStream(outputFile, true));
+            for (Flow flow : flows) {
+                writer.println(flow.getId() + "," + flow.getPortId()  + "," + flow.getSendTime());
+            }
+            writer.close();
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
