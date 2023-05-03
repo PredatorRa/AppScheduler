@@ -1,11 +1,7 @@
-public class TimePeriod {
+public class TimePeriod implements Comparable<TimePeriod>{
     private Integer startTime;
     private Integer endTime;
     private Integer freeWidth;
-
-    public boolean CompareTo(TimePeriod timePeriod){
-        return this.startTime-timePeriod.startTime<0;
-    }
 
     public TimePeriod(Integer startTime, Integer endTime, Integer freeWidth) {
         this.startTime = startTime;
@@ -35,5 +31,15 @@ public class TimePeriod {
 
     public void setFreeWidth(Integer freeWidth) {
         this.freeWidth = freeWidth;
+    }
+
+    /**
+     * 按照开始时间升序排列
+     * @param o the object to be compared.
+     * @return
+     */
+    @Override
+    public int compareTo(TimePeriod o) {
+        return this.startTime-o.startTime;
     }
 }

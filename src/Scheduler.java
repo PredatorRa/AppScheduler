@@ -45,7 +45,7 @@ public class Scheduler {
         List<Port> availablePorts = new ArrayList<>();
         //选出在flow开始时间有容量的端口
         for (Port port : ports) {
-            if(port.isAvailable(flow.getEnterTime(),flow.getBandwidth())){
+            if(port.isAvailable(flow.getEnterTime(),flow.getDuration(),flow.getBandwidth())){
                 availablePorts.add(port);
             }
         }
@@ -58,23 +58,24 @@ public class Scheduler {
         Port nearestPort = null;
         Integer nearestTime = Integer.MAX_VALUE;
         for (Port port : ports) {
-            TimePeriod period = port.findNextAvailablePeriod(flow.getEnterTime(),flow.getBandwidth());
+            TimePeriod period = port.findNextAvailablePeriod(flow.getEnterTime(),flow.getDuration(),flow.getBandwidth());
             if(period.getStartTime()<nearestTime){
                 nearestTime = period.getStartTime();
                 nearestPort = port;
             }
         }
+        flow.setSendTime(nearestTime);
         return nearestPort;
     }
 
-    /*
-     * 尝试发送一个流，如果成功则更新端口状态，返回 true；否则返回 false。
+    /**
+     * 尝试发送一个流，更新端口状态和流状态
+     * @param port
+     * @param flow
      */
     private void sendFlow(Port port, Flow flow) {
         //端口绑定流
-        Integer sendTime = port.bond(flow);
-        //流绑定端口
-        flow.bond(port.getId(),sendTime);
+        port.bond(flow);
     }
 
     //把结果写入文件

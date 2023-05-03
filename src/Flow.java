@@ -58,10 +58,4 @@ class Flow implements Comparable<Flow> {
     public int compareTo(Flow o) {
         return o.duration - this.duration;
     }
-
-    //绑定端口
-    public void bond(int id, Integer sendTime) {
-        this.setPortId(id);
-        this.setSendTime(sendTime);
-    }
 }
