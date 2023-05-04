@@ -172,7 +172,7 @@ class Port {
     // 判断当前时间是否可用
     public boolean isAvailable(int startTime, int duration, int useWidth) {
         //找到当前时间点对应的时间段
-        List<TimePeriod> periodList = findPeriodList(startTime, duration);
+        Set<TimePeriod> periodList = findPeriodList(startTime, duration);
         //判断当前时间段容量是否够
         for (TimePeriod timePeriod : periodList) {
             if (timePeriod.getFreeWidth() < useWidth) return false;
@@ -192,8 +192,8 @@ class Port {
      * @param duration
      * @return
      */
-    private List<TimePeriod> findPeriodList(int startTime, int duration) {
-        List<TimePeriod> res = new ArrayList<>();
+    private Set<TimePeriod> findPeriodList(int startTime, int duration) {
+        Set<TimePeriod> res = new TreeSet<>();
         for (TimePeriod timePeriod : timeLine) {
             //第一段
             if (timePeriod.getStartTime() <= startTime && timePeriod.getEndTime() > startTime) {
@@ -206,7 +206,7 @@ class Port {
                 break;
             }
             //中间
-            if(timePeriod.getStartTime()>=startTime&&timePeriod.getEndTime()<=startTime){
+            if(timePeriod.getStartTime()>=startTime&&timePeriod.getEndTime()<=startTime+duration){
                 res.add(timePeriod);
             }
         }
@@ -249,12 +249,12 @@ class Port {
         //当前时间enterTime发送
         if (flow.getSendTime() == -1) {
             flow.setSendTime(flow.getEnterTime());
-            List<TimePeriod> periodList = findPeriodList(flow.getEnterTime(), flow.getDuration());
+            Set<TimePeriod> periodList = findPeriodList(flow.getEnterTime(), flow.getDuration());
             send(periodList, flow.getSendTime(), flow.getDuration(), flow.getBandwidth());
             return;
         }
         //不是当前时间发送
-        List<TimePeriod> periodList = findPeriodList(flow.getSendTime(), flow.getDuration());
+        Set<TimePeriod> periodList = findPeriodList(flow.getSendTime(), flow.getDuration());
         send(periodList, flow.getSendTime(), flow.getDuration(), flow.getBandwidth());
     }
 
@@ -265,38 +265,42 @@ class Port {
      * @param sendTime
      * @param duration
      */
-    private void send(List<TimePeriod> periodList, int sendTime, int duration, int bandwidth) {
+    private void send(Set<TimePeriod> periodList, int sendTime, int duration, int bandwidth) {
         //只有一段
         if (periodList.size() == 1) {
-            TimePeriod timePeriod = periodList.get(0);
+            TimePeriod timePeriod = periodList.iterator().next();
             timeLine.remove(timePeriod);
             TimePeriod t1 = new TimePeriod(timePeriod.getStartTime(), sendTime, timePeriod.getFreeWidth());
             TimePeriod t2 = new TimePeriod(sendTime, sendTime + duration, timePeriod.getFreeWidth() - bandwidth);
             TimePeriod t3 = new TimePeriod(sendTime + duration, timePeriod.getEndTime(), timePeriod.getFreeWidth());
-            if(t1.getStartTime()!=t1.getEndTime())timeLine.add(t1);
-            if(t2.getStartTime()!=t2.getEndTime())timeLine.add(t2);
-            if(t3.getStartTime()!=t3.getEndTime())timeLine.add(t3);
+            if(t1.getStartTime()!=t1.getEndTime())addTimePeriod(t1);
+            if(t2.getStartTime()!=t2.getEndTime())addTimePeriod(t2);
+            if(t3.getStartTime()!=t3.getEndTime())addTimePeriod(t3);
         }
         //多段
-        Collections.sort(periodList);
         periodList.stream().forEach(item -> {
             //第一段
             if (item.getStartTime() < sendTime && item.getEndTime() > sendTime) {
                 timeLine.remove(item);
-                timeLine.add(new TimePeriod(item.getStartTime(),sendTime,item.getFreeWidth()));
-                timeLine.add(new TimePeriod(sendTime,item.getEndTime(),item.getFreeWidth()-bandwidth));
+                addTimePeriod(new TimePeriod(item.getStartTime(),sendTime,item.getFreeWidth()));
+                addTimePeriod(new TimePeriod(sendTime,item.getEndTime(),item.getFreeWidth()-bandwidth));
                 return;
             }
             //最后一段
             if(item.getStartTime() < sendTime+duration && item.getEndTime() > sendTime+duration){
                 timeLine.remove(item);
-                timeLine.add(new TimePeriod(item.getStartTime(),sendTime+duration,item.getFreeWidth()-bandwidth));
-                timeLine.add(new TimePeriod(sendTime+duration,item.getEndTime(),item.getFreeWidth()));
+                addTimePeriod(new TimePeriod(item.getStartTime(),sendTime+duration,item.getFreeWidth()-bandwidth));
+                addTimePeriod(new TimePeriod(sendTime+duration,item.getEndTime(),item.getFreeWidth()));
                 return;
             }
             //中间段
             item.setFreeWidth(item.getFreeWidth()-bandwidth);
         });
+    }
+
+    private void addTimePeriod(TimePeriod period){
+        if(period.getStartTime()>=period.getEndTime())return;
+        timeLine.add(period);
     }
 
     public int getId() {
@@ -340,6 +344,9 @@ class Scheduler {
         Iterator<Flow> iter = this.flows.iterator();
         while (iter.hasNext()) {
             Flow flow = iter.next();
+            if(flow.getId()==916){
+                int i =1;
+            }
             //判断将当前flow发送到哪一个Port比较合适
             Port port = choosePort(flow);
             //发送流
