@@ -76,7 +76,6 @@ public class Main {
         try {
             File outputFile = new File(String.format("./data/%d/result.txt", i));
             PrintWriter writer = new PrintWriter(new FileOutputStream(outputFile, true));
-            writer.println("流id,端口id,开始发送时间");
             for (Flow flow : flows) {
                 writer.println(flow.getId() + "," + flow.getPortId()  + "," + flow.getSendTime());
             }
