@@ -12,8 +12,8 @@ public class Main {
         List<Port> ports = null;
         List<Flow> flows = null;
         while(true) {
-            ports = readPorts(String.format("./data/%d/port.txt",i ));
-            flows = readFlows(String.format("./data/%d/flow.txt",i ));
+            ports = readPorts(String.format("../data/%d/port.txt",i ));
+            flows = readFlows(String.format("../data/%d/flow.txt",i ));
             if(ports==null||ports.isEmpty()){
                 break;
             }
@@ -74,7 +74,7 @@ public class Main {
     //把结果写入文件
     private static void writeFile(List<Flow> flows,int i) {
         try {
-            File outputFile = new File(String.format("./data/%d/result.txt", i));
+            File outputFile = new File(String.format("../data/%d/result.txt", i));
             PrintWriter writer = new PrintWriter(new FileOutputStream(outputFile, true));
             for (Flow flow : flows) {
                 writer.println(flow.getId() + "," + flow.getPortId()  + "," + flow.getSendTime());
