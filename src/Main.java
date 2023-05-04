@@ -344,9 +344,6 @@ class Scheduler {
         Iterator<Flow> iter = this.flows.iterator();
         while (iter.hasNext()) {
             Flow flow = iter.next();
-            if(flow.getId()==916){
-                int i =1;
-            }
             //判断将当前flow发送到哪一个Port比较合适
             Port port = choosePort(flow);
             //发送流
