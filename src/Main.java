@@ -1,4 +1,5 @@
 import java.io.*;
+import java.sql.Time;
 import java.util.*;
 
 /*
@@ -169,14 +170,14 @@ class Port {
     }
 
     // 判断当前时间是否可用 O(t)
-    public boolean isAvailable(int startTime, int duration, int useWidth) {
+    public TimePeriod isAvailable(int startTime, int duration, int useWidth) {
         //找到当前时间点对应的时间段 O(t)
         Set<TimePeriod> periodList = findPeriodList(startTime, duration);
         //判断当前时间段容量是否够 O(t)
         for (TimePeriod timePeriod : periodList) {
-            if (timePeriod.getFreeWidth() < useWidth) return false;
+            if (timePeriod.getFreeWidth() < useWidth) return null;
         }
-        return true;
+        return periodList.iterator().next();
     }
 
     // 找到某个时间点对应的时间段
@@ -221,20 +222,46 @@ class Port {
         return -1;
     }
 
-    //找到下一段有空容量的period O(t^2)
+    //找到下一段有空容量的period O(t)
     public TimePeriod findNextAvailablePeriod(int enterTime, int duration, int bandwidth) {
-        //找到第一个开始的timePeriod O(t)
+        //1.找到第一个开始的timePeriod O(t)
         Iterator<TimePeriod> iterator = timeLine.iterator();
         TimePeriod timePeriod = null;
         while (iterator.hasNext()) {
             timePeriod = iterator.next();
-            if (timePeriod.getEndTime() >= enterTime) break;
+            if (timePeriod.getEndTime() > enterTime) break;
         }
-        //看当下时间开始的连续时间段能不能满足容量要求，能不能就遍历下一段O(t^2)
-        if (isAvailable(enterTime, duration, bandwidth)) return timePeriod;
+        //2.看当下时间开始的连续时间段能不能满足容量要求，不能就遍历下一段O(t)
+        boolean isAvailable = true;
+        TimePeriod res = timePeriod;
+        //2.1处理当下时间段
+        //找到当前时间点对应的时间段 O(t)
+        Set<TimePeriod> periodList = findPeriodList(enterTime, duration);
+        //判断当前连续时间段容量是否够 O(t)
+        for (TimePeriod t : periodList) {
+            if (t.getFreeWidth() < bandwidth){
+                isAvailable=false;
+                break;
+            }
+            //保持timePeriod和t同步,t是第一个不满足带宽条件的时间段
+            if(iterator.hasNext())timePeriod = iterator.next();
+        }
+        if (isAvailable) return res;
+        //2.2处理后续时间段
         while (iterator.hasNext()) {
             timePeriod = iterator.next();
-            if (isAvailable(timePeriod.getStartTime(), duration, bandwidth)) return timePeriod;
+            res = timePeriod;
+            periodList = findPeriodList(timePeriod.getStartTime(), duration);
+            isAvailable = true;
+            for (TimePeriod t : periodList) {
+                if (t.getFreeWidth() < bandwidth){
+                    isAvailable=false;
+                    break;
+                }
+                //保持timePeriod和t同步,t是第一个不满足带宽条件的时间段
+                if(iterator.hasNext())timePeriod = iterator.next();
+            }
+            if (isAvailable) return res;
         }
         return null;
     }
@@ -338,11 +365,11 @@ class Scheduler {
             port.init();
         }
 
-        // 逐个发送待发送的流，直到全部发送完成 O(fpt^2)
+        // 逐个发送待发送的流，直到全部发送完成 O(fpt)
         Iterator<Flow> iter = this.flows.iterator();
         while (iter.hasNext()) {
             Flow flow = iter.next();
-            //判断将当前flow发送到哪一个Port比较合适 O(pt^2)
+            //判断将当前flow发送到哪一个Port比较合适 O(pt)
             Port port = choosePort(flow);
             //发送流 O(t)
             sendFlow(port,flow);
@@ -350,32 +377,30 @@ class Scheduler {
     }
 
     /**
-     * 选择合适的端口 O(pt^2)
+     * 选择合适的端口 O(pt)
      * @param flow
      * @return
      */
     private Port choosePort(Flow flow) {
-        List<Port> availablePorts = new ArrayList<>();
-        //选出在flow开始时间有容量的端口 O(pt)
+        Port choosedPort = null;
+        TimePeriod choosedPeriod = null;
+        //1.选出在flow开始时间有容量的且当前容量最小的端口 O(pt)
         for (Port port : ports) {
-            if(port.isAvailable(flow.getEnterTime(),flow.getDuration(),flow.getBandwidth())){
-                availablePorts.add(port);
+            TimePeriod period = port.isAvailable(flow.getEnterTime(), flow.getDuration(), flow.getBandwidth());
+            if(choosedPeriod==null){
+                choosedPort = port;
+                choosedPeriod = period;
+            }else if(period!=null&&period.getFreeWidth()<choosedPeriod.getFreeWidth()){
+                choosedPort = port;
+                choosedPeriod = period;
             }
         }
-        //选出可以传输流的端口里容量最小的 O(pt)
-        if(!availablePorts.isEmpty()){
-            Port port = availablePorts.stream().reduce((x, y) -> x.findWidth(flow.getEnterTime()) < y.findWidth(flow.getEnterTime()) ? x : y).get();
-            return port;
-        }
-        //如果当前时间没有可以传输的节点，则顺延到距离最近的有空余容量的端口 O(pt^2)
+        if(choosedPort!=null)return choosedPort;
+        //2.如果当前时间没有可以传输的节点，则顺延到距离最近的有空余容量的端口 O(pt)
         Port nearestPort = null;
         Integer nearestTime = Integer.MAX_VALUE;
         for (Port port : ports) {
             TimePeriod period = port.findNextAvailablePeriod(flow.getEnterTime(),flow.getDuration(),flow.getBandwidth());
-            //当前端口带宽小于流带宽
-            if(period==null) {
-                continue;
-            }
             if(period.getStartTime()<nearestTime){
                 nearestTime = period.getStartTime();
                 nearestPort = port;
