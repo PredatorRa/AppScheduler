@@ -1,5 +1,4 @@
 import java.io.*;
-import java.sql.Time;
 import java.util.*;
 
 /*
@@ -8,6 +7,7 @@ import java.util.*;
 */
 public class Main {
     public static void main(String[] args) {
+        long t1 = System.currentTimeMillis();
         // 读取端口文件和流文件
         int i=0;
         List<Port> ports = null;
@@ -23,6 +23,7 @@ public class Main {
             scheduler.run();
             writeFile(flows,i);
             i++;
+            System.out.println(i+":"+String.valueOf(System.currentTimeMillis()-t1));
         }
     }
 
@@ -382,35 +383,19 @@ class Scheduler {
      * @return
      */
     private Port choosePort(Flow flow) {
-        Port choosedPort = null;
-        TimePeriod choosedPeriod = null;
-        //1.选出在flow开始时间有容量的且当前容量最小的端口 O(pt)
+        //1.选出在flow开始时间有容量的第一个端口 O(pt)
         for (Port port : ports) {
             TimePeriod period = port.isAvailable(flow.getEnterTime(), flow.getDuration(), flow.getBandwidth());
-            if(choosedPeriod==null){
-                choosedPort = port;
-                choosedPeriod = period;
-            }else if(period!=null&&period.getFreeWidth()<choosedPeriod.getFreeWidth()){
-                choosedPort = port;
-                choosedPeriod = period;
+            if(period!=null){
+                return port;
             }
         }
-        if(choosedPort!=null)return choosedPort;
-        //2.如果当前时间没有可以传输的节点，则顺延到距离最近的有空余容量的端口 O(pt)
-        Port nearestPort = null;
-        Integer nearestTime = Integer.MAX_VALUE;
-        for (Port port : ports) {
-            TimePeriod period = port.findNextAvailablePeriod(flow.getEnterTime(),flow.getDuration(),flow.getBandwidth());
-            if(period.getStartTime()<nearestTime){
-                nearestTime = period.getStartTime();
-                nearestPort = port;
-            }
-        }
-        if(nearestPort==null){
-            System.out.println(nearestPort);
-        }
-        flow.setSendTime(nearestTime);
-        return nearestPort;
+        //2.如果当前时间没有可以传输的节点，则顺延到随机的有空余容量的端口 O(pt)
+        int i = new Random().nextInt(ports.size());
+        Port port = ports.get(i);
+        TimePeriod period = port.findNextAvailablePeriod(flow.getEnterTime(),flow.getDuration(),flow.getBandwidth());
+        flow.setSendTime(period.getStartTime());
+        return port;
     }
 
     /**
