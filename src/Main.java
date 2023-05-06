@@ -1,9 +1,8 @@
 import java.io.*;
 import java.util.*;
 
-/*
-
-读取端口文件和流文件，并创建 Scheduler 对象进行调度
+/**
+ *读取端口文件和流文件，并创建 Scheduler 对象进行调度
 */
 public class Main {
     public static void main(String[] args) {
@@ -112,6 +111,86 @@ public class Main {
 
 }
 
+
+class Scheduler {
+    // 端口列表
+    List<Port> ports;
+    // 流列表
+    List<Flow> flows;
+
+    public Scheduler(List<Port> ports, List<Flow> flows) {
+        this.ports = ports;
+        this.flows = flows;
+    }
+
+    public void run() {
+        // 按照时间跨度降序排序 O(f)
+        Collections.sort(this.flows);
+
+        // 初始化端口状态 O(p)
+        for (Port port : this.ports) {
+            port.init();
+        }
+
+        // 逐个发送待发送的流，直到全部发送完成 O(fpt)
+        Iterator<Flow> iter = this.flows.iterator();
+        while (iter.hasNext()) {
+            Flow flow = iter.next();
+            //判断将当前flow发送到哪一个Port比较合适 O(pt)
+            Port port = choosePort(flow);
+            //发送流 O(t)
+            sendFlow(port, flow);
+        }
+    }
+
+    /**
+     * 选择合适的端口 O(pt)
+     *
+     * @param flow
+     * @return
+     */
+    private Port choosePort(Flow flow) {
+        Port choosedPort = null;
+        int minWidth = Integer.MAX_VALUE;
+        //1.选出在flow开始时间有容量的且当前容量最小的端口 O(pt)
+        for (Port port : ports) {
+            int width = port.isAvailable(flow.getEnterTime(), flow.getDuration(), flow.getBandwidth());
+            if (width!=-1 && width< minWidth) {
+                choosedPort = port;
+                minWidth = width;
+            }
+        }
+        if (choosedPort != null) {
+            flow.setSendTime(flow.getEnterTime());
+            return choosedPort;
+        }
+        //2.如果当前时间没有可以传输的节点，则顺延到距离最近的有空余容量的端口 O(pt)
+        Port nearestPort = null;
+        Integer nearestTime = Integer.MAX_VALUE;
+        for (Port port : ports) {
+            int startTime = port.findNextAvailablePeriod(flow.getEnterTime(), flow.getDuration(), flow.getBandwidth());
+            if (startTime < nearestTime) {
+                nearestTime = startTime;
+                nearestPort = port;
+            }
+        }
+        flow.setSendTime(nearestTime);
+        return nearestPort;
+    }
+
+    /**
+     * 尝试发送一个流，更新端口状态和流状态 O(t)
+     *
+     * @param port
+     * @param flow
+     */
+    private void sendFlow(Port port, Flow flow) {
+        //端口绑定流 O(t)
+        port.bond(flow);
+    }
+
+
+}
 
 /**
  * 流对象，记录流的带宽、进入设备时间和发送时间
