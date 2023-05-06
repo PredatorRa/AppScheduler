@@ -19,9 +19,9 @@ public class Main {
                 break;
             }
             // 创建 Scheduler 对象进行调度
-//            Scheduler scheduler = new Scheduler(ports, flows);
-//            scheduler.run();
-            test(ports,flows);
+            Scheduler scheduler = new Scheduler(ports, flows);
+            scheduler.run();
+//            test(ports,flows);
             writeFile(flows,i);
             i++;
             System.out.println(i+":"+String.valueOf(System.currentTimeMillis()-t1));
@@ -113,10 +113,9 @@ public class Main {
 }
 
 
-/*
-
-流对象，记录流的带宽、进入设备时间和发送时间
-*/
+/**
+ * 流对象，记录流的带宽、进入设备时间和发送时间
+ */
 class Flow implements Comparable<Flow> {
     private final int id;
     private final int bandwidth;
@@ -174,7 +173,7 @@ class Flow implements Comparable<Flow> {
     }
 }
 
-/*
+/**
  * 端口对象，记录出端口的带宽和占用情况
  */
 class Port {
