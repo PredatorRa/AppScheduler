@@ -77,7 +77,7 @@ public class Main {
     private static void writeFile(List<Flow> flows,int i) {
         try {
             File outputFile = new File(String.format("../data/%d/result.txt", i));
-            PrintWriter writer = new PrintWriter(new FileOutputStream(outputFile, true));
+            PrintWriter writer = new PrintWriter(new FileOutputStream(outputFile, false));
             for (Flow flow : flows) {
                 writer.println(flow.getId() + "," + flow.getPortId()  + "," + flow.getSendTime());
             }
