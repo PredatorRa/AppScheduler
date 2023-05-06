@@ -109,6 +109,7 @@ public class Main {
             throw new RuntimeException(e);
         }
     }
+
 }
 
 
@@ -179,115 +180,64 @@ class Flow implements Comparable<Flow> {
 class Port {
     private final int id;
     private final int bandwidth;
-    private int[] timeLine;
+    public int[] timeLine;
 
     public Port(int id, int bandwidth) {
         this.id = id;
         this.bandwidth = bandwidth;
-        this.timeLine = new TreeSet<>();
+        this.timeLine = new int[10000];
+        Arrays.fill(timeLine, bandwidth);
     }
 
     // 初始化端口状态
     public void init() {
-        timeLine.clear();
-        timeLine.add(new TimePeriod(0, Integer.MAX_VALUE, bandwidth));
-    }
-
-    // 判断当前时间是否可用 O(t)
-    public TimePeriod isAvailable(int startTime, int duration, int useWidth) {
-        //找到当前时间点对应的时间段 O(t)
-        Set<TimePeriod> periodList = findPeriodList(startTime, duration);
-        //判断当前时间段容量是否够 O(t)
-        for (TimePeriod timePeriod : periodList) {
-            if (timePeriod.getFreeWidth() < useWidth) return null;
-        }
-        return periodList.iterator().next();
-    }
-
-    // 找到某个时间点对应的时间段
-    private TimePeriod findPeriod(int currentTime) {
-        return null;
+        Arrays.fill(timeLine, bandwidth);
     }
 
     /**
-     * 找到一段时间内包含的时间段 O(t)
-     * @param startTime
-     * @param duration
-     * @return
+     * 判断当前时间是否可用,可用返回当前时间段最小带宽,不可用返回Integer.MIN_VALUE
      */
-    private Set<TimePeriod> findPeriodList(int startTime, int duration) {
-        Set<TimePeriod> res = new TreeSet<>();
-        for (TimePeriod timePeriod : timeLine) {
-            //第一段
-            if (timePeriod.getStartTime() <= startTime && timePeriod.getEndTime() > startTime) {
-                res.add(timePeriod);
-                continue;
-            }
-            //最后一段
-            if(timePeriod.getStartTime()<startTime+duration&& timePeriod.getEndTime()>=startTime+duration){
-                res.add(timePeriod);
-                break;
-            }
-            //中间
-            if(timePeriod.getStartTime()>=startTime&&timePeriod.getEndTime()<=startTime+duration){
-                res.add(timePeriod);
-            }
+    public int isAvailable(int startTime, int duration, int useWidth) {
+        //判断当前时间段容量是否够 O(t)
+        int minWidth = Integer.MIN_VALUE;
+        for (int i = startTime; i < startTime + duration; i++) {
+            if (timeLine[i] < useWidth) return -1;
+            if (timeLine[i] < minWidth) minWidth = timeLine[i];
         }
-        return res;
+        return minWidth;
     }
 
-    //找到某一个时间点的剩余带宽 O(t)
-    public Integer findWidth(int time) {
-        for (TimePeriod timePeriod : timeLine) {
-            if (timePeriod.getStartTime() <= time && timePeriod.getEndTime() > time) {
-                return timePeriod.getFreeWidth();
-            }
-        }
-        return -1;
-    }
-
-    //找到下一段有空容量的period O(t)
-    public TimePeriod findNextAvailablePeriod(int enterTime, int duration, int bandwidth) {
-        //1.找到第一个开始的timePeriod O(t)
-        Iterator<TimePeriod> iterator = timeLine.iterator();
-        TimePeriod timePeriod = null;
-        while (iterator.hasNext()) {
-            timePeriod = iterator.next();
-            if (timePeriod.getEndTime() > enterTime) break;
-        }
-        //2.看当下时间开始的连续时间段能不能满足容量要求，不能就遍历下一段O(t)
-        boolean isAvailable = true;
-        TimePeriod res = timePeriod;
-        //2.1处理当下时间段
-        //找到当前时间点对应的时间段 O(t)
-        Set<TimePeriod> periodList = findPeriodList(enterTime, duration);
+    /**
+     * 找到下一段有空容量的period O(t)
+     * @param enterTime
+     * @param duration
+     * @param bandwidth
+     * @return 开始时间
+     */
+    public int findNextAvailablePeriod(int enterTime, int duration, int bandwidth) {
+        //看当下时间开始的连续时间段能不能满足容量要求，不能就遍历下一段O(t)
         //判断当前连续时间段容量是否够 O(t)
-        for (TimePeriod t : periodList) {
-            if (t.getFreeWidth() < bandwidth){
-                isAvailable=false;
+        int i = enterTime;
+        for (;i<enterTime+duration;i++) {
+            if (timeLine[i] < bandwidth) {
                 break;
             }
-            //保持timePeriod和t同步,t是第一个不满足带宽条件的时间段
-            if(iterator.hasNext())timePeriod = iterator.next();
         }
-        if (isAvailable) return res;
+        if (i==enterTime+duration) return enterTime;
         //2.2处理后续时间段
-        while (iterator.hasNext()) {
-            timePeriod = iterator.next();
-            res = timePeriod;
-            periodList = findPeriodList(timePeriod.getStartTime(), duration);
-            isAvailable = true;
-            for (TimePeriod t : periodList) {
-                if (t.getFreeWidth() < bandwidth){
-                    isAvailable=false;
+        i++;
+        while (i<timeLine.length) {
+            int startTime = i;
+            int endTime = i+duration;
+            for (;i<endTime;i++) {
+                if (timeLine[i] < bandwidth) {
                     break;
                 }
-                //保持timePeriod和t同步,t是第一个不满足带宽条件的时间段
-                if(iterator.hasNext())timePeriod = iterator.next();
             }
-            if (isAvailable) return res;
+            if (i==endTime) return startTime;
+            i++;
         }
-        return null;
+        return -1;
     }
 
     /**
@@ -295,61 +245,11 @@ class Port {
      */
     public void bond(Flow flow) {
         flow.setPortId(this.id);
-        //当前时间enterTime发送
-        if (flow.getSendTime() == -1) {
-            flow.setSendTime(flow.getEnterTime());
-            Set<TimePeriod> periodList = findPeriodList(flow.getEnterTime(), flow.getDuration());
-            send(periodList, flow.getSendTime(), flow.getDuration(), flow.getBandwidth());
-            return;
+        int startTime = flow.getSendTime();
+        int duration = flow.getDuration();
+        for(int i=startTime;i<startTime+duration;i++){
+            timeLine[i] = timeLine[i] - flow.getBandwidth();
         }
-        //不是当前时间发送
-        Set<TimePeriod> periodList = findPeriodList(flow.getSendTime(), flow.getDuration());
-        send(periodList, flow.getSendTime(), flow.getDuration(), flow.getBandwidth());
-    }
-
-    /**
-     * 根据发送的流的时间转换时间轴
-     *
-     * @param periodList
-     * @param sendTime
-     * @param duration
-     */
-    private void send(Set<TimePeriod> periodList, int sendTime, int duration, int bandwidth) {
-        //只有一段
-        if (periodList.size() == 1) {
-            TimePeriod timePeriod = periodList.iterator().next();
-            timeLine.remove(timePeriod);
-            TimePeriod t1 = new TimePeriod(timePeriod.getStartTime(), sendTime, timePeriod.getFreeWidth());
-            TimePeriod t2 = new TimePeriod(sendTime, sendTime + duration, timePeriod.getFreeWidth() - bandwidth);
-            TimePeriod t3 = new TimePeriod(sendTime + duration, timePeriod.getEndTime(), timePeriod.getFreeWidth());
-            if(t1.getStartTime()!=t1.getEndTime())addTimePeriod(t1);
-            if(t2.getStartTime()!=t2.getEndTime())addTimePeriod(t2);
-            if(t3.getStartTime()!=t3.getEndTime())addTimePeriod(t3);
-        }
-        //多段
-        periodList.stream().forEach(item -> {
-            //第一段
-            if (item.getStartTime() < sendTime && item.getEndTime() > sendTime) {
-                timeLine.remove(item);
-                addTimePeriod(new TimePeriod(item.getStartTime(),sendTime,item.getFreeWidth()));
-                addTimePeriod(new TimePeriod(sendTime,item.getEndTime(),item.getFreeWidth()-bandwidth));
-                return;
-            }
-            //最后一段
-            if(item.getStartTime() < sendTime+duration && item.getEndTime() > sendTime+duration){
-                timeLine.remove(item);
-                addTimePeriod(new TimePeriod(item.getStartTime(),sendTime+duration,item.getFreeWidth()-bandwidth));
-                addTimePeriod(new TimePeriod(sendTime+duration,item.getEndTime(),item.getFreeWidth()));
-                return;
-            }
-            //中间段
-            item.setFreeWidth(item.getFreeWidth()-bandwidth);
-        });
-    }
-
-    private void addTimePeriod(TimePeriod period){
-        if(period.getStartTime()>=period.getEndTime())return;
-        timeLine.add(period);
     }
 
     public int getId() {
@@ -358,14 +258,6 @@ class Port {
 
     public int getBandwidth() {
         return this.bandwidth;
-    }
-
-    public Set<TimePeriod> getTimeLine() {
-        return timeLine;
-    }
-
-    public void setTimeLine(Set<TimePeriod> timeLine) {
-        this.timeLine = timeLine;
     }
 }
 
