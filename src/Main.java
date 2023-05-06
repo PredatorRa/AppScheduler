@@ -147,7 +147,7 @@ class Flow implements Comparable<Flow> {
 
     @Override
     public int compareTo(Flow o) {
-        return o.duration - this.duration;
+        return this.enterTime-o.enterTime;
     }
 }
 
