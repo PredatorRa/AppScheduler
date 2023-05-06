@@ -19,11 +19,34 @@ public class Main {
                 break;
             }
             // 创建 Scheduler 对象进行调度
-            Scheduler scheduler = new Scheduler(ports, flows);
-            scheduler.run();
+//            Scheduler scheduler = new Scheduler(ports, flows);
+//            scheduler.run();
+            test(ports,flows);
             writeFile(flows,i);
             i++;
             System.out.println(i+":"+String.valueOf(System.currentTimeMillis()-t1));
+        }
+    }
+
+    private static void test(List<Port> ports, List<Flow> flows) {
+        Collections.sort(flows);
+        int i = 0 ,k=0;
+        int[] startTime = new int[ports.size()];
+        while(i<flows.size()){
+            Flow flow = flows.get(i);
+            for(int j=0;j<ports.size();j++) {
+                if(ports.get(k).getBandwidth()<flow.getBandwidth()){
+                    k = (k+1)%ports.size();
+                    continue;
+                }
+                int maxTime = Math.max(flow.getEnterTime(), startTime[k]);
+                flow.setPortId(ports.get(k).getId());
+                flow.setSendTime(maxTime);
+                startTime[j] = maxTime + flow.getDuration();
+                k = (k+1)%ports.size();
+                break;
+            }
+            i++;
         }
     }
 
@@ -146,7 +169,7 @@ class Flow implements Comparable<Flow> {
 
     @Override
     public int compareTo(Flow o) {
-        return o.duration - this.duration;
+        return this.enterTime - o.enterTime;
     }
 }
 
